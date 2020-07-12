@@ -8,7 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 matplotlib.use('TkAgg')
-language = 'cn'  # en: English or cn: Chinese
+language = 'en'  # en: English or cn: Chinese
 if language == 'cn':
     matplotlib.rcParams['font.family'] = ['Heiti TC']
 
@@ -72,7 +72,7 @@ class correlationAnimation:
         self.correlation = np.zeros(len(signal1) + len(signal2) - 1)
         self.sig1 = np.hstack((np.zeros(len(signal2) - 1), self.signal1, np.zeros(len(signal2) - 1)))
         self.sig2 = np.hstack((self.signal2, np.zeros(len(self.signal1) + len(self.signal2) - 2)))
-        self.fig, self.axes = plt.subplots(3, 1, figsize=(8, 5))
+        self.fig, self.axes = plt.subplots(3, 1, figsize=(12, 6))
 
     def start(self, save_gif=False, f_name='correlation'):
         '''start animation or save as gif'''
@@ -163,17 +163,17 @@ if __name__ == '__main__':
 
     save_vis = True
 
-    # # auto-correlation for random noise
-    # signal = np.random.randn(400)
-    # corr_anim = correlationAnimation(signal, signal, normalized=False)
-    # corr_anim.start(save_gif=save_vis, f_name='corr_noise_' + language)
+    # auto-correlation for random noise
+    signal = np.random.randn(400)
+    corr_anim = correlationAnimation(signal, signal, normalized=False)
+    corr_anim.start(save_gif=save_vis, f_name='corr_noise_' + language)
 
     # auto-correlation for sine wave
     t = np.arange(0, 2e-3, 1 / 100e3)
     f1 = 1e3
     signal1 = np.sin(2 * np.pi * f1 * t)
-    # corr_anim = correlationAnimation(signal1, signal1)
-    # corr_anim.start(save_gif=save_vis, f_name='corr_sine_' + language)
+    corr_anim = correlationAnimation(signal1, signal1)
+    corr_anim.start(save_gif=save_vis, f_name='corr_sine_' + language)
 
     # circular correlation for sine wave
     signal2 = np.sin(2 * np.pi * (f1 + 200) * t)
@@ -195,7 +195,7 @@ if __name__ == '__main__':
     if not os.path.exists('vis'):
         os.makedirs('vis')
     if save_vis:
-        plt.savefig(os.path.join('vis', 'corr_sine.png'))
+        plt.savefig(os.path.join('vis', 'corr_sine_' + language + '.png'))
     else:
         plt.show()
 
