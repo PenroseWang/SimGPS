@@ -38,8 +38,8 @@ fs = f0
 fi = 4 * f_ca
 
 # sample navigation data broadcast on each satellite
-data = [[0, 1, 0, 1, 0, 1],
-        [0, 0, 0, 1, 1, 1],
+data = [[1, 0, 1, 0, 1, 0],
+        [1, 0, 0, 0, 0, 1],
         [0, 0, 1, 0, 0, 1],
         [0, 1, 1, 0, 1, 1],
         [0, 1, 0, 0, 1, 0]]
