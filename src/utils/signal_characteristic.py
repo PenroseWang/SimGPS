@@ -52,9 +52,11 @@ class sigCharacterAnimation:
         anim = FuncAnimation(self.fig, self._animate, frames=self.frames, blit=False,
                              interval=100, init_func=self._init_canvas)
         if save_gif:
-            if not os.path.exists('vis'):
-                os.makedirs('vis')
-            anim.save(os.path.join('vis', f_name + '.gif'), codec='png', writer='imagemagick')
+            file_dir_path = os.path.dirname(os.path.abspath(__file__))
+            vis_dir_path = os.path.join(file_dir_path, 'vis')
+            if not os.path.exists(vis_dir_path):
+                os.makedirs(vis_dir_path)
+            anim.save(os.path.join(vis_dir_path, f_name + '.gif'), codec='png', writer='imagemagick')
         else:
             plt.show()
 
@@ -141,5 +143,3 @@ if __name__ == '__main__':
     # phase
     anim = sigCharacterAnimation(signal1=[1, 1, 0], signal2=[1, 1, np.pi / 2])
     anim.start(save_gif=save_fig, f_name='sig_char_phase')
-
-

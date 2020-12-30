@@ -6,16 +6,37 @@ import os
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 from matplotlib.animation import FuncAnimation
 from utils import sys_, func
 from tracking.carrier_loop import carrierLoop, PLL
 from tracking.code_loop import codeLoop
-from signal.gps_signal import gpsSignal
-from signal.ca_code import caCode
+from signal_model.gps_signal import gpsSignal
+from signal_model.ca_code import caCode
 matplotlib.use('TkAgg')
 language = 'cn'  # en: English or cn: Chinese
-if language == 'cn':
-    matplotlib.rcParams['font.family'] = ['Heiti TC']
+
+
+def _set_chinese_font():
+    """If `language` is Chinese, try to pick a system font that supports CJK glyphs.
+    If none of the common fonts are available, print a short warning with install hints.
+    """
+    if language != 'cn':
+        return
+    candidates = [
+        'Noto Sans CJK SC', 'Noto Sans CJK JP', 'Noto Sans CJK TC',
+        'WenQuanYi Micro Hei', 'WenQuanYi Zen Hei', 'SimHei', 'Microsoft YaHei'
+    ]
+    available = {f.name for f in fm.fontManager.ttflist}
+    for name in candidates:
+        if name in available:
+            matplotlib.rcParams['font.family'] = name
+            matplotlib.rcParams['font.sans-serif'] = [name] + matplotlib.rcParams.get('font.sans-serif', [])
+            return
+    print("Warning: No Chinese font found. Install 'fonts-noto-cjk' or 'fonts-wqy-zenhei' and restart to render Chinese characters.")
+
+
+_set_chinese_font()
 
 
 class trackingLoop:
@@ -127,9 +148,11 @@ class trackingLoopAnimation:
         self._init_animation()
         anim = FuncAnimation(self.fig, self._animate, frames=self.frames, blit=True, init_func=self._init_canvas)
         if save_gif:
-            if not os.path.exists('vis'):
-                os.makedirs('vis')
-            anim.save(os.path.join('vis', f_name + '.gif'), codec='png', writer='imagemagick')
+            file_dir_path = os.path.dirname(os.path.abspath(__file__))
+            vis_dir_path = os.path.join(file_dir_path, 'vis')
+            if not os.path.exists(vis_dir_path):
+                os.makedirs(vis_dir_path)
+            anim.save(os.path.join(vis_dir_path, f_name + '.gif'), codec='png', writer='imagemagick')
         else:
             plt.show()
 

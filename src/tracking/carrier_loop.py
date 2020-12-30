@@ -7,14 +7,36 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import matplotlib.font_manager as fm
 from utils import sys_, func
 from tracking.nco import NCO
 from tracking.loop_filter import loopFilter
-from signal.gps_signal import gpsSignal
+from signal_model.gps_signal import gpsSignal
 matplotlib.use('TkAgg')
-language = 'cn'  # en: English or cn: Chinese
-if language == 'cn':
-    matplotlib.rcParams['font.family'] = ['Heiti TC']
+language = 'en'  # en: English or cn: Chinese
+
+
+def _set_chinese_font():
+    """If `language` is Chinese, try to pick a system font that supports CJK glyphs.
+    If none of the common fonts are available, print a short warning with install hints.
+    """
+    if language != 'cn':
+        return
+    candidates = [
+        'Noto Sans CJK SC', 'Noto Sans CJK JP', 'Noto Sans CJK TC',
+        'WenQuanYi Micro Hei', 'WenQuanYi Zen Hei', 'SimHei', 'Microsoft YaHei'
+    ]
+    available = {f.name for f in fm.fontManager.ttflist}
+    for name in candidates:
+        if name in available:
+            matplotlib.rcParams['font.family'] = name
+            matplotlib.rcParams['font.sans-serif'] = [name] + matplotlib.rcParams.get('font.sans-serif', [])
+            return
+    print("Warning: No Chinese font found. Install 'fonts-noto-cjk' or 'fonts-wqy-zenhei' and restart to render Chinese characters.")
+
+
+_set_chinese_font()
+
 
 # define constants
 PLL = 0
@@ -188,9 +210,11 @@ class carrierLoopAnimation:
         self._init_animation()
         anim = FuncAnimation(self.fig, self._animate, frames=self.frames, blit=True, init_func=self._init_canvas)
         if save_gif:
-            if not os.path.exists('vis'):
-                os.makedirs('vis')
-            anim.save(os.path.join('vis', f_name + '.gif'), codec='png', writer='imagemagick')
+            file_dir_path = os.path.dirname(os.path.abspath(__file__))
+            vis_dir_path = os.path.join(file_dir_path, 'vis')
+            if not os.path.exists(vis_dir_path):
+                os.makedirs(vis_dir_path)
+            anim.save(os.path.join(vis_dir_path, f_name + '.gif'), codec='png', writer='imagemagick')
         else:
             plt.show()
 
@@ -254,7 +278,7 @@ class carrierLoopAnimation:
         self.filter_e[0:-1] = self.filter_e[1:]
         self.filter_e[-1] = filter_e
         self.lines[2].set_data(range(0, self.filter_history), self.filter_e)
-        self.point.set_data(self.filter_history - 1, self.filter_e[-1])
+        self.point.set_data([self.filter_history - 1], [self.filter_e[-1]])
         y_max = max(abs(self.filter_e)) * 1.1
         self.axes[1].set_ylim([-y_max - 1e-10, y_max + 1e-10])
         # plot 2: loop filter status

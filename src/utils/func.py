@@ -6,11 +6,32 @@ import os
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 from matplotlib.animation import FuncAnimation
 matplotlib.use('TkAgg')
-language = 'en'  # en: English or cn: Chinese
-if language == 'cn':
-    matplotlib.rcParams['font.family'] = ['Heiti TC']
+language = 'cn'  # en: English or cn: Chinese
+
+
+def _set_chinese_font():
+    """If `language` is Chinese, try to pick a system font that supports CJK glyphs.
+    If none of the common fonts are available, print a short warning with install hints.
+    """
+    if language != 'cn':
+        return
+    candidates = [
+        'Noto Sans CJK SC', 'Noto Sans CJK JP', 'Noto Sans CJK TC',
+        'WenQuanYi Micro Hei', 'WenQuanYi Zen Hei', 'SimHei', 'Microsoft YaHei'
+    ]
+    available = {f.name for f in fm.fontManager.ttflist}
+    for name in candidates:
+        if name in available:
+            matplotlib.rcParams['font.family'] = name
+            matplotlib.rcParams['font.sans-serif'] = [name] + matplotlib.rcParams.get('font.sans-serif', [])
+            return
+    print("Warning: No Chinese font found. Install 'fonts-noto-cjk' or 'fonts-wqy-zenhei' and restart to render Chinese characters.")
+
+
+_set_chinese_font()
 
 
 # circular correlation
@@ -79,16 +100,18 @@ class correlationAnimation:
         self._init_animation()
         anim = FuncAnimation(self.fig, self._animate, frames=self.frames, blit=True, init_func=self._init_canvas)
         if save_gif:
-            if not os.path.exists('vis'):
-                os.makedirs('vis')
-            anim.save(os.path.join('vis', f_name + '.gif'), codec='png', writer='imagemagick')
+            file_dir_path = os.path.dirname(os.path.abspath(__file__))
+            vis_dir_path = os.path.join(file_dir_path, 'vis')
+            if not os.path.exists(vis_dir_path):
+                os.makedirs(vis_dir_path)
+            anim.save(os.path.join(vis_dir_path, f_name + '.gif'), codec='png', writer='imagemagick')
         else:
             plt.show()
 
     def _init_animation(self):
         ''' initialize animation'''
         self.frames = min(50, len(self.correlation))
-        self.step_size = np.ceil(len(self.correlation) / self.frames).astype(np.int)
+        self.step_size = np.ceil(len(self.correlation) / self.frames).astype(np.int32)
         self.roll_cnt = 0
         self.lines = [matplotlib.axes.Axes.plot] * 3
         # plot 1: show signal 1
@@ -145,7 +168,7 @@ class correlationAnimation:
         else:
             self.lines[1].set_color('#1f77b4')
         self.lines[2].set_data(range(len(self.correlation)), self.correlation)
-        self.point.set_data(len(self.correlation), self.correlation[-1])
+        self.point.set_data([len(self.correlation) - 1], [self.correlation[-1]])
         return self.lines + [self.point]
 
     def _calculate_overlap(self):
@@ -163,17 +186,20 @@ if __name__ == '__main__':
 
     save_vis = True
 
+    file_dir_path = os.path.dirname(os.path.abspath(__file__))
+    vis_dir_path = os.path.join(file_dir_path, 'vis')
+
     # auto-correlation for random noise
     signal = np.random.randn(400)
     corr_anim = correlationAnimation(signal, signal, normalized=False)
-    corr_anim.start(save_gif=save_vis, f_name='corr_noise_' + language)
+    corr_anim.start(save_gif=save_vis, f_name=os.path.join('corr_noise_' + language))
 
     # auto-correlation for sine wave
     t = np.arange(0, 2e-3, 1 / 100e3)
     f1 = 1e3
     signal1 = np.sin(2 * np.pi * f1 * t)
     corr_anim = correlationAnimation(signal1, signal1)
-    corr_anim.start(save_gif=save_vis, f_name='corr_sine_' + language)
+    corr_anim.start(save_gif=save_vis, f_name=os.path.join('corr_sine_' + language))
 
     # circular correlation for sine wave
     signal2 = np.sin(2 * np.pi * (f1 + 200) * t)
@@ -192,10 +218,11 @@ if __name__ == '__main__':
         plt.title('Correlation of sine wave with different frequencies', fontsize=22)
     else:
         plt.title('不同频率的正弦波的相关性', fontsize=22)
-    if not os.path.exists('vis'):
-        os.makedirs('vis')
+    
     if save_vis:
-        plt.savefig(os.path.join('vis', 'corr_sine_' + language + '.png'))
+        if not os.path.exists(vis_dir_path):
+            os.makedirs(vis_dir_path)
+        plt.savefig(os.path.join(vis_dir_path, 'corr_sine_' + language + '.png'))
     else:
         plt.show()
 
