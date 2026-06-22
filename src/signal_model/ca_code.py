@@ -7,12 +7,34 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import matplotlib.font_manager as fm
 from utils.func import circular_correlation
 from utils import sys_
 matplotlib.use('TkAgg')
-language = 'cn'  # en: English or cn: Chinese
-if language == 'cn':
-    matplotlib.rcParams['font.family'] = ['Heiti TC']
+language = 'en'  # en: English or cn: Chinese
+
+
+def _set_chinese_font():
+    """If `language` is Chinese, try to pick a system font that supports CJK glyphs.
+    If none of the common fonts are available, print a short warning with install hints.
+    """
+    if language != 'cn':
+        return
+    candidates = [
+        'Noto Sans CJK SC', 'Noto Sans CJK JP', 'Noto Sans CJK TC',
+        'WenQuanYi Micro Hei', 'WenQuanYi Zen Hei', 'SimHei', 'Microsoft YaHei'
+    ]
+    available = {f.name for f in fm.fontManager.ttflist}
+    for name in candidates:
+        if name in available:
+            matplotlib.rcParams['font.family'] = name
+            matplotlib.rcParams['font.sans-serif'] = [name] + matplotlib.rcParams.get('font.sans-serif', [])
+            return
+    print("Warning: No Chinese font found. Install 'fonts-noto-cjk' or 'fonts-wqy-zenhei' and restart to render Chinese characters.")
+
+
+_set_chinese_font()
+
 
 class caCode:
     '''
@@ -40,7 +62,7 @@ class caCode:
         # phase =  f_ca + f_d + d_fd * t
         # f_d = k_ca * doppler, dfd = k_ca * doppler_drift, where k_ca is carrier aiding factor
         phase = t * (sys_.f_ca + sys_.k_ca * (doppler + doppler_drift * t))
-        t_code = np.mod(np.floor(phase), len(self.code)).astype(np.int)
+        t_code = np.mod(np.floor(phase), len(self.code)).astype(np.int32)
         ca_signal = 2 * self.code[t_code] - 1   # convert 0/1 to -1/1
         return ca_signal
 
@@ -48,7 +70,7 @@ class caCode:
         g1 = self.generate_m_code(10, [3, 10])
         g2 = self.generate_m_code(10, [2, 3, 6, 8, 9, 10])
         g2_shift = np.roll(g2, sys_.delay[self.prn - 1])        # C/A code delay
-        self.code = np.logical_xor(g1, g2_shift).astype(np.int)
+        self.code = np.logical_xor(g1, g2_shift).astype(np.int32)
 
     @staticmethod
     def generate_m_code(num_bits, taps):
@@ -61,8 +83,8 @@ class caCode:
         '''
 
         N = 2 ** num_bits - 1
-        register_states = np.ones(num_bits).astype(np.int)   # initialize as all 1s
-        m_code = np.empty(N).astype(np.int)
+        register_states = np.ones(num_bits, dtype=np.int32)   # initialize as all 1s
+        m_code = np.zeros(N, dtype=np.int32)
         for i in range(N):
             m_code[i] = register_states[-1]
             taps_states = [register_states[x - 1] for x in taps]
@@ -100,9 +122,11 @@ class caCodeAnimation:
         anim = FuncAnimation(self.fig, self._animate, frames=len(t) // self.sample_interval,
                              blit=True, init_func=self._init_canvas)
         if save_gif:
-            if not os.path.exists('vis'):
-                os.makedirs('vis')
-            anim.save(os.path.join('vis', f_name + '.gif'), codec='png', writer='imagemagick')
+            file_dir_path = os.path.dirname(os.path.abspath(__file__))
+            vis_dir_path = os.path.join(file_dir_path, 'vis')
+            if not os.path.exists(vis_dir_path):
+                os.makedirs(vis_dir_path)
+            anim.save(os.path.join(vis_dir_path, f_name + '.gif'), codec='png', writer='imagemagick')
         else:
             plt.show()
 
@@ -136,9 +160,9 @@ class caCodeAnimation:
         '''perform animation step'''
         shift = self.sample_interval * i % len(self.t)
         self.line1.set_data(self.t, np.roll(self.sig2, -shift))
-        self.point1.set_data(self.t[-shift], self.sig2[0])
+        self.point1.set_data([self.t[-shift]], [self.sig2[0]])
         self.line2.set_data(self.t, np.roll(self.corr, -shift))
-        self.point2.set_data(self.t[-1], self.corr[shift - 1])
+        self.point2.set_data([self.t[-1]], [self.corr[shift - 1]])
         return self.line1, self.line2, self.point1, self.point2
 
 
@@ -165,7 +189,7 @@ if __name__ == '__main__':
 
     cross_corr = caCodeAnimation(t, PRN1_signal, PRN2_signal)
     if language == 'en':
-        cross_corr.start('PRN' + str(sv1), 'PRN' + str(sv2), 'cross-correlation', save_gif, 'ca_code_cross')
+        cross_corr.start('PRN' + str(sv1), 'PRN' + str(sv2), 'cross-correlation', save_gif, 'ca_code_cross_en')
     else:
         cross_corr.start('PRN' + str(sv1), 'PRN' + str(sv2), '相关性', save_gif, 'ca_code_cross_cn')
 

@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from signal.ca_code import caCode
+from signal_model.ca_code import caCode
 from utils import sys_
 from utils.func import circular_correlation
 matplotlib.use('TkAgg')
@@ -123,7 +123,7 @@ class gpsSignal:
         # phase =  f_ca + f_d + d_fd * t, where
         # f_d = k_data * doppler, dfd = k_data * doppler_drift
         phase = t * (sys_.f_data + sys_.k_data * (doppler + doppler_drift * t))
-        t_code = np.mod(np.floor(phase), len(data)).astype(np.int)
+        t_code = np.mod(np.floor(phase), len(data)).astype(np.int32)
         signal = 2 * np.array(data)[t_code] - 1   # convert from 0/1 to -1/1
         return signal
 
